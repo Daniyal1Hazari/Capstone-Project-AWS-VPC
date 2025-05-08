@@ -1,0 +1,56 @@
+Multi-VPC AWS Network Architecture Setup (Production & Development)
+Creating VPC (Production Network)
+Navigate to VPC → Create VPC
+Name: Amazon VPC (production network)
+IPv4 CIDR: 10.0.0.0/16
+Tag: Key = name, Value = Amazon VPC (production network)
+Click Create VPC
+Creating Subnets
+Create 5 subnets (app1, app2, dbcache, db, web) across different AZs with distinct /20 CIDRs.
+Ensure no CIDR overlapping; each subnet must be unique within a VPC.
+Converting Web Subnet to Public
+Select web subnet → Actions → Edit subnet settings
+Enable auto-assign Public IPv4 → Save
+Launching EC2 Instances
+Launch 5 EC2 instances (app1, app2, dbcache, db, web) in respective subnets with key-pair 'ec2-kp'
+Web server will have both public and private IPs
+Establishing Internet Access via IGW
+Create Internet Gateway → Name: igw(Amazon VPC)
+Attach IGW to Amazon VPC (production network)
+Creating Route Table for Web Access
+Create Route Table → Name: Route-table(Amazon VPC)
+
+Add Route → Destination: 0.0.0.0/0, Target: IGW
+Associate it with the web subnet
+
+Accessing Web & Private Servers
+Access public server using PowerShell and SSH
+Transfer key to public server, SSH into private (dbcache) server from there
+Providing Internet to Private Server via NAT Gateway
+Create NAT GW in public subnet (web) and allocate Elastic IP
+Create Route Table → Name: private-server-rt
+Add Route: 0.0.0.0/0 → NAT GW, associate with dbcache and app1 subnets
+Managing NACLs & Security Groups
+NACLs: Deny SSH from CIDR 0.0.0.0/8 at subnet level
+Security Groups: Allow HTTP from Anywhere on web server, restrict access to other servers only from web server SG
+Creating VPC (Development Network)
+Create VPC → Name: Amazon VPC (development network)
+IPv4 CIDR: 10.0.0.0/20 (ensure no overlap with production VPC)
+
+Creating Subnets in Development VPC
+Create 2 subnets: web (10.0.4.0/24), db (10.0.6.0/24) in AZ-1a and AZ-1b respectively
+Making Web Subnet Public
+Enable auto-assign Public IPv4 for web(development network) subnet
+Launching Instances in Development VPC
+Launch 2 EC2 instances: server-web-development (public), server-db-development (private)
+Enabling Internet for Development Web Server
+Create IGW → Name: igw(Amazon VPC)-demo
+Attach to development VPC
+Create Route Table → Add 0.0.0.0/0 route to IGW
+Associate with web(development) subnet
+Testing Internet Connectivity
+Use EC2 Instance Connect → Run: ping google.com
+Peering Production and Development VPCs
+Create Peering Connection: Name: my-peer
+Requester: Production VPC, Accepter: Development VPC
+Accept the peering request from the development VPC side
